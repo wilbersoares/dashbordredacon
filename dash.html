@@ -1,0 +1,1638 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PromoBank Dashboard 2025</title>
+  
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  
+  <!-- React + ReactDOM -->
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+  
+  <!-- Recharts -->
+  <script src="https://unpkg.com/recharts@2.10.3/umd/Recharts.js"></script>
+  
+  <!-- Babel para JSX -->
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: #000000;
+      color: #FFFFFF;
+      min-height: 100vh;
+    }
+    
+    /* Scrollbar personalizada */
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+    
+    ::-webkit-scrollbar-track {
+      background: #111;
+    }
+    
+    ::-webkit-scrollbar-thumb {
+      background: #e61b20;
+      border-radius: 4px;
+    }
+    
+    ::-webkit-scrollbar-thumb:hover {
+      background: #ff4a4d;
+    }
+    
+    /* Loading */
+    #loading {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: #000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      z-index: 9999;
+    }
+    
+    .spinner {
+      width: 50px;
+      height: 50px;
+      border: 3px solid #333;
+      border-top-color: #e61b20;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+    
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    
+    #loading p {
+      margin-top: 20px;
+      color: #e61b20;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+  <div id="loading">
+    <div class="spinner"></div>
+    <p>Carregando Dashboard...</p>
+  </div>
+  
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect } = React;
+    const { 
+      AreaChart, Area, BarChart, Bar, LineChart, Line, 
+      PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, 
+      Tooltip, ResponsiveContainer, ComposedChart 
+    } = Recharts;
+
+    // COR PRINCIPAL
+    const PRIMARY_COLOR = '#e61b20';
+    const PRIMARY_DARK = '#b01518';
+    const PRIMARY_LIGHT = '#ff4a4d';
+    const INOVACAO_COLOR = '#8B5CF6';
+    const CORRECAO_COLOR = '#F59E0B';
+
+    // Dados do Dashboard
+    const monthlyData = [
+      { month: 'Jan', criadas: 89, resolvidas: 23, eficiencia: 25.8, bugs: 45, spromo: 53 },
+      { month: 'Fev', criadas: 86, resolvidas: 53, eficiencia: 61.6, bugs: 35, spromo: 26 },
+      { month: 'Mar', criadas: 92, resolvidas: 53, eficiencia: 57.6, bugs: 32, spromo: 28 },
+      { month: 'Abr', criadas: 65, resolvidas: 40, eficiencia: 61.5, bugs: 25, spromo: 36 },
+      { month: 'Mai', criadas: 62, resolvidas: 40, eficiencia: 64.5, bugs: 22, spromo: 34 },
+      { month: 'Jun', criadas: 86, resolvidas: 33, eficiencia: 38.4, bugs: 28, spromo: 53 },
+      { month: 'Jul', criadas: 65, resolvidas: 69, eficiencia: 106.2, bugs: 20, spromo: 27 },
+      { month: 'Ago', criadas: 93, resolvidas: 59, eficiencia: 63.4, bugs: 25, spromo: 46 },
+      { month: 'Set', criadas: 56, resolvidas: 71, eficiencia: 126.8, bugs: 18, spromo: 40, entrada: true },
+      { month: 'Out', criadas: 80, resolvidas: 51, eficiencia: 63.7, bugs: 22, spromo: 55 },
+      { month: 'Nov', criadas: 56, resolvidas: 50, eficiencia: 89.3, bugs: 16, spromo: 21 }
+    ];
+
+    const quarterlyData = [
+      { quarter: 'Q1', criadas: 267, resolvidas: 129, eficiencia: 48.3 },
+      { quarter: 'Q2', criadas: 213, resolvidas: 113, eficiencia: 53.1 },
+      { quarter: 'Q3', criadas: 214, resolvidas: 199, eficiencia: 93.0 },
+      { quarter: 'Q4', criadas: 136, resolvidas: 101, eficiencia: 74.3 }
+    ];
+
+    const typeDistribution = [
+      { name: 'Bug', value: 299, color: PRIMARY_COLOR },
+      { name: 'História', value: 290, color: PRIMARY_LIGHT },
+      { name: 'Tarefa', value: 241, color: '#FFFFFF' }
+    ];
+
+    const typeData = [
+      { name: 'Bug', total: 299, resolvidos: 246, taxa: 82.3, color: PRIMARY_COLOR },
+      { name: 'História', total: 290, resolvidos: 119, taxa: 41.0, color: PRIMARY_LIGHT },
+      { name: 'Tarefa', total: 241, resolvidos: 211, taxa: 87.6, color: '#FFFFFF' }
+    ];
+
+    const topReleases = [
+      { name: '5.3.0', value: 25, month: 'Mar' },
+      { name: '5.13.0', value: 17, month: 'Out' },
+      { name: '5.4.0', value: 17, month: 'Abr' },
+      { name: '4.17.0', value: 15, month: 'Jan' },
+      { name: '6.0.0', value: 14, month: 'Nov' },
+      { name: '5.5.0', value: 12, month: 'Mai' },
+      { name: '5.2.0', value: 11, month: 'Fev' },
+      { name: '5.12.0', value: 10, month: 'Set' },
+      { name: '5.6.0', value: 10, month: 'Jun' },
+      { name: '5.11.0', value: 10, month: 'Ago' }
+    ];
+
+    const spromoData = [
+      { name: 'Suporte/Atendimento', value: 419, color: PRIMARY_COLOR },
+      { name: 'Interno', value: 411, color: '#333333' }
+    ];
+
+    const bugsMonthlyData = [
+      { month: 'Jan', criados: 45, resolvidos: 11, eficiencia: 24.4, backlog: 34 },
+      { month: 'Fev', criados: 27, resolvidos: 28, eficiencia: 103.7, backlog: 33 },
+      { month: 'Mar', criados: 31, resolvidos: 29, eficiencia: 93.5, backlog: 35 },
+      { month: 'Abr', criados: 28, resolvidos: 20, eficiencia: 71.4, backlog: 43 },
+      { month: 'Mai', criados: 28, resolvidos: 13, eficiencia: 46.4, backlog: 58 },
+      { month: 'Jun', criados: 23, resolvidos: 17, eficiencia: 73.9, backlog: 64 },
+      { month: 'Jul', criados: 23, resolvidos: 26, eficiencia: 113.0, backlog: 61 },
+      { month: 'Ago', criados: 38, resolvidos: 28, eficiencia: 73.7, backlog: 71 },
+      { month: 'Set', criados: 17, resolvidos: 29, eficiencia: 170.6, backlog: 59 },
+      { month: 'Out', criados: 23, resolvidos: 17, eficiencia: 73.9, backlog: 65 },
+      { month: 'Nov', criados: 16, resolvidos: 10, eficiencia: 62.5, backlog: 71 }
+    ];
+
+    const bugsStats = {
+      total: 299,
+      resolvidos: 228,
+      pendentes: 37,
+      taxaResolucao: 76.3,
+      melhorMes: 'Set',
+      melhorEficiencia: 170.6,
+      mediaMensal: 27.2,
+      mediaResolvidos: 20.7
+    };
+
+    const bugsPieData = [
+      { name: 'Resolvidos', value: 228, color: '#22C55E' },
+      { name: 'Pendentes', value: 37, color: PRIMARY_COLOR }
+    ];
+
+    const inovacaoVsCorrecao = [
+      { month: 'Jan', inovacao: 0, correcao: 11, pctInovacao: 0 },
+      { month: 'Fev', inovacao: 10, correcao: 28, pctInovacao: 26.3 },
+      { month: 'Mar', inovacao: 6, correcao: 29, pctInovacao: 17.1 },
+      { month: 'Abr', inovacao: 6, correcao: 20, pctInovacao: 23.1 },
+      { month: 'Mai', inovacao: 15, correcao: 13, pctInovacao: 53.6 },
+      { month: 'Jun', inovacao: 4, correcao: 17, pctInovacao: 19.0 },
+      { month: 'Jul', inovacao: 26, correcao: 26, pctInovacao: 50.0 },
+      { month: 'Ago', inovacao: 7, correcao: 28, pctInovacao: 20.0 },
+      { month: 'Set', inovacao: 12, correcao: 29, pctInovacao: 29.3 },
+      { month: 'Out', inovacao: 10, correcao: 17, pctInovacao: 37.0 },
+      { month: 'Nov', inovacao: 21, correcao: 10, pctInovacao: 67.7 }
+    ];
+
+    const inovacaoVsCorrecaoAcumulado = [
+      { month: 'Jan', inovacao: 0, correcao: 11 },
+      { month: 'Fev', inovacao: 10, correcao: 39 },
+      { month: 'Mar', inovacao: 16, correcao: 68 },
+      { month: 'Abr', inovacao: 22, correcao: 88 },
+      { month: 'Mai', inovacao: 37, correcao: 101 },
+      { month: 'Jun', inovacao: 41, correcao: 118 },
+      { month: 'Jul', inovacao: 67, correcao: 144 },
+      { month: 'Ago', inovacao: 74, correcao: 172 },
+      { month: 'Set', inovacao: 86, correcao: 201 },
+      { month: 'Out', inovacao: 96, correcao: 218 },
+      { month: 'Nov', inovacao: 117, correcao: 228 }
+    ];
+
+    const inovacaoStats = {
+      totalInovacao: 117,
+      totalCorrecao: 228,
+      pctInovacao: 33.9,
+      pctCorrecao: 66.1,
+      melhorMesInovacao: 'Nov',
+      melhorPctInovacao: 67.7
+    };
+
+    const inovacaoPieData = [
+      { name: 'Inovação', value: 117, color: INOVACAO_COLOR },
+      { name: 'Correções', value: 228, color: CORRECAO_COLOR }
+    ];
+
+    const gestaoComparativo = {
+      antes: {
+        periodo: '01/Jan - 10/Set',
+        dias: 253,
+        criadas: 662,
+        resolvidas: 395,
+        taxaResolucao: 59.7,
+        bugs: 250,
+        bugsResolvidos: 185,
+        produtividadeDiaria: 1.56
+      },
+      depois: {
+        periodo: '11/Set - 30/Nov',
+        dias: 80,
+        criadas: 168,
+        resolvidas: 147,
+        taxaResolucao: 87.5,
+        bugs: 49,
+        bugsResolvidos: 43,
+        produtividadeDiaria: 1.84
+      },
+      melhorias: {
+        taxaResolucao: 46.6,
+        produtividade: 17.7,
+        reducaoBugs: 80.4
+      }
+    };
+
+    const eficienciaComparativo = [
+      { name: 'Antes', value: 59.7, fill: '#666666' },
+      { name: 'Depois', value: 87.5, fill: PRIMARY_COLOR }
+    ];
+
+    // Componente de Contador Animado
+    const AnimatedCounter = ({ end, duration = 2000, suffix = '', decimals = 0 }) => {
+      const [count, setCount] = useState(0);
+      
+      useEffect(() => {
+        let startTime;
+        const animate = (timestamp) => {
+          if (!startTime) startTime = timestamp;
+          const progress = Math.min((timestamp - startTime) / duration, 1);
+          const value = progress * end;
+          setCount(decimals > 0 ? parseFloat(value.toFixed(decimals)) : Math.floor(value));
+          if (progress < 1) requestAnimationFrame(animate);
+        };
+        requestAnimationFrame(animate);
+      }, [end, duration, decimals]);
+      
+      return <span>{count.toLocaleString('pt-BR')}{suffix}</span>;
+    };
+
+    // Tooltip Customizado
+    const CustomTooltip = ({ active, payload, label }) => {
+      if (active && payload && payload.length) {
+        return (
+          <div style={{
+            background: 'rgba(0, 0, 0, 0.95)',
+            border: `1px solid ${PRIMARY_COLOR}`,
+            borderRadius: '8px',
+            padding: '12px 16px',
+            boxShadow: `0 4px 20px rgba(230, 27, 32, 0.3)`
+          }}>
+            <p style={{ color: PRIMARY_COLOR, fontWeight: '600', marginBottom: '8px', fontSize: '14px' }}>{label}</p>
+            {payload.map((entry, index) => (
+              <p key={index} style={{ color: '#FFFFFF', fontSize: '13px', margin: '4px 0' }}>
+                {entry.name}: <span style={{ color: entry.color || PRIMARY_COLOR, fontWeight: '600' }}>{entry.value}</span>
+              </p>
+            ))}
+          </div>
+        );
+      }
+      return null;
+    };
+
+    // Custom label para gráfico de pizza
+    const renderCustomizedLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent, name, value }) => {
+      const RADIAN = Math.PI / 180;
+      const radius = outerRadius * 1.3;
+      const x = cx + radius * Math.cos(-midAngle * RADIAN);
+      const y = cy + radius * Math.sin(-midAngle * RADIAN);
+
+      return (
+        <text 
+          x={x} 
+          y={y} 
+          fill="#FFFFFF" 
+          textAnchor={x > cx ? 'start' : 'end'} 
+          dominantBaseline="central"
+          style={{ fontSize: '13px', fontWeight: '500' }}
+        >
+          {`${name}: ${value}`}
+        </text>
+      );
+    };
+
+    // Estilos
+    const styles = {
+      container: {
+        minHeight: '100vh',
+        background: '#000000',
+        position: 'relative',
+        fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
+        color: '#FFFFFF',
+        overflow: 'hidden'
+      },
+      content: {
+        position: 'relative',
+        zIndex: 1,
+        padding: '32px 48px',
+        maxWidth: '1600px',
+        margin: '0 auto'
+      },
+      header: {
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: '40px',
+        paddingBottom: '24px',
+        borderBottom: `1px solid rgba(230, 27, 32, 0.3)`
+      },
+      logo: {
+        display: 'flex',
+        alignItems: 'center',
+        gap: '16px'
+      },
+      logoIcon: {
+        width: '48px',
+        height: '48px',
+        background: PRIMARY_COLOR,
+        borderRadius: '12px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        fontSize: '24px',
+        fontWeight: '700',
+        color: '#FFFFFF'
+      },
+      logoText: {
+        fontSize: '28px',
+        fontWeight: '700',
+        color: PRIMARY_COLOR,
+        letterSpacing: '-0.5px'
+      },
+      logoSubtext: {
+        fontSize: '14px',
+        color: 'rgba(255, 255, 255, 0.6)',
+        marginTop: '2px'
+      },
+      headerRight: {
+        textAlign: 'right'
+      },
+      headerDate: {
+        fontSize: '14px',
+        color: 'rgba(255, 255, 255, 0.5)'
+      },
+      headerTitle: {
+        fontSize: '18px',
+        color: PRIMARY_COLOR,
+        fontWeight: '600'
+      },
+      kpiGrid: {
+        display: 'grid',
+        gridTemplateColumns: 'repeat(6, 1fr)',
+        gap: '20px',
+        marginBottom: '40px'
+      },
+      kpiCard: {
+        background: 'rgba(20, 20, 20, 0.8)',
+        backdropFilter: 'blur(10px)',
+        borderRadius: '16px',
+        padding: '24px',
+        border: `1px solid rgba(230, 27, 32, 0.2)`,
+        transition: 'all 0.3s ease',
+        cursor: 'default'
+      },
+      kpiIcon: {
+        width: '40px',
+        height: '40px',
+        borderRadius: '10px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginBottom: '16px',
+        fontSize: '18px'
+      },
+      kpiValue: {
+        fontSize: '32px',
+        fontWeight: '700',
+        color: '#FFFFFF',
+        marginBottom: '4px',
+        letterSpacing: '-1px'
+      },
+      kpiLabel: {
+        fontSize: '13px',
+        color: 'rgba(255, 255, 255, 0.6)',
+        textTransform: 'uppercase',
+        letterSpacing: '0.5px'
+      },
+      tabs: {
+        display: 'flex',
+        gap: '8px',
+        marginBottom: '32px',
+        background: 'rgba(20, 20, 20, 0.6)',
+        padding: '6px',
+        borderRadius: '12px',
+        width: 'fit-content',
+        flexWrap: 'wrap'
+      },
+      tab: {
+        padding: '12px 24px',
+        borderRadius: '8px',
+        fontSize: '14px',
+        fontWeight: '500',
+        cursor: 'pointer',
+        transition: 'all 0.2s ease',
+        border: 'none',
+        background: 'transparent',
+        color: 'rgba(255, 255, 255, 0.6)'
+      },
+      tabActive: {
+        background: PRIMARY_COLOR,
+        color: '#FFFFFF'
+      },
+      grid2: {
+        display: 'grid',
+        gridTemplateColumns: '2fr 1fr',
+        gap: '24px',
+        marginBottom: '24px'
+      },
+      grid2Equal: {
+        display: 'grid',
+        gridTemplateColumns: '1fr 1fr',
+        gap: '24px',
+        marginBottom: '24px'
+      },
+      grid3: {
+        display: 'grid',
+        gridTemplateColumns: 'repeat(3, 1fr)',
+        gap: '24px',
+        marginBottom: '24px'
+      },
+      grid4: {
+        display: 'grid',
+        gridTemplateColumns: 'repeat(4, 1fr)',
+        gap: '24px',
+        marginBottom: '24px'
+      },
+      card: {
+        background: 'rgba(20, 20, 20, 0.8)',
+        backdropFilter: 'blur(10px)',
+        borderRadius: '20px',
+        padding: '28px',
+        border: `1px solid rgba(230, 27, 32, 0.15)`
+      },
+      cardTitle: {
+        fontSize: '16px',
+        fontWeight: '600',
+        color: PRIMARY_COLOR,
+        marginBottom: '24px',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '10px'
+      },
+      cardTitleIcon: {
+        width: '8px',
+        height: '8px',
+        background: PRIMARY_COLOR,
+        borderRadius: '50%'
+      },
+      statRow: {
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        padding: '16px 0',
+        borderBottom: '1px solid rgba(255, 255, 255, 0.05)'
+      },
+      statLabel: {
+        fontSize: '14px',
+        color: 'rgba(255, 255, 255, 0.7)'
+      },
+      statValue: {
+        fontSize: '18px',
+        fontWeight: '600',
+        color: '#FFFFFF'
+      },
+      progressBar: {
+        height: '6px',
+        background: 'rgba(255, 255, 255, 0.1)',
+        borderRadius: '3px',
+        overflow: 'hidden',
+        marginTop: '8px'
+      },
+      progressFill: {
+        height: '100%',
+        background: PRIMARY_COLOR,
+        borderRadius: '3px',
+        transition: 'width 1s ease'
+      },
+      badge: {
+        display: 'inline-block',
+        padding: '4px 12px',
+        borderRadius: '20px',
+        fontSize: '12px',
+        fontWeight: '600',
+        background: `rgba(230, 27, 32, 0.2)`,
+        color: PRIMARY_COLOR
+      },
+      badgeSuccess: {
+        background: 'rgba(34, 197, 94, 0.2)',
+        color: '#22C55E'
+      },
+      badgePurple: {
+        background: 'rgba(139, 92, 246, 0.2)',
+        color: INOVACAO_COLOR
+      },
+      badgeOrange: {
+        background: 'rgba(245, 158, 11, 0.2)',
+        color: CORRECAO_COLOR
+      },
+      highlightCard: {
+        background: `linear-gradient(135deg, rgba(230, 27, 32, 0.2) 0%, rgba(0, 0, 0, 0.8) 100%)`,
+        border: `1px solid rgba(230, 27, 32, 0.4)`
+      },
+      bigNumber: {
+        fontSize: '48px',
+        fontWeight: '700',
+        color: PRIMARY_COLOR,
+        lineHeight: 1
+      },
+      releaseItem: {
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        padding: '12px 16px',
+        background: 'rgba(255, 255, 255, 0.03)',
+        borderRadius: '8px',
+        marginBottom: '8px',
+        transition: 'all 0.2s ease'
+      },
+      gestaoCard: {
+        background: `linear-gradient(135deg, rgba(230, 27, 32, 0.15) 0%, rgba(0, 0, 0, 0.9) 100%)`,
+        border: `2px solid rgba(230, 27, 32, 0.3)`,
+        borderRadius: '24px',
+        padding: '32px',
+        marginBottom: '24px'
+      },
+      gestaoHeader: {
+        textAlign: 'center',
+        marginBottom: '32px'
+      },
+      gestaoTitle: {
+        fontSize: '28px',
+        fontWeight: '700',
+        color: PRIMARY_COLOR,
+        marginBottom: '8px'
+      },
+      gestaoSubtitle: {
+        fontSize: '16px',
+        color: 'rgba(255, 255, 255, 0.6)'
+      },
+      metricBox: {
+        background: 'rgba(0, 0, 0, 0.5)',
+        borderRadius: '16px',
+        padding: '24px',
+        textAlign: 'center',
+        border: `1px solid rgba(230, 27, 32, 0.2)`
+      },
+      metricValue: {
+        fontSize: '36px',
+        fontWeight: '700',
+        color: '#FFFFFF',
+        marginBottom: '8px'
+      },
+      metricLabel: {
+        fontSize: '14px',
+        color: 'rgba(255, 255, 255, 0.6)'
+      },
+      improvementBadge: {
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: '6px',
+        padding: '8px 16px',
+        borderRadius: '24px',
+        fontSize: '14px',
+        fontWeight: '600',
+        background: 'rgba(34, 197, 94, 0.15)',
+        color: '#22C55E',
+        marginTop: '12px'
+      },
+      comparisonGrid: {
+        display: 'grid',
+        gridTemplateColumns: '1fr auto 1fr',
+        gap: '24px',
+        alignItems: 'center',
+        marginBottom: '32px'
+      },
+      vsCircle: {
+        width: '60px',
+        height: '60px',
+        borderRadius: '50%',
+        background: PRIMARY_COLOR,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        fontSize: '16px',
+        fontWeight: '700',
+        color: '#FFFFFF'
+      },
+      bugCard: {
+        background: `linear-gradient(135deg, rgba(230, 27, 32, 0.1) 0%, rgba(0, 0, 0, 0.9) 100%)`,
+        border: `1px solid rgba(230, 27, 32, 0.25)`,
+        borderRadius: '20px',
+        padding: '28px'
+      },
+      inovacaoCard: {
+        background: `linear-gradient(135deg, rgba(139, 92, 246, 0.1) 0%, rgba(0, 0, 0, 0.9) 100%)`,
+        border: `1px solid rgba(139, 92, 246, 0.25)`,
+        borderRadius: '20px',
+        padding: '28px'
+      }
+    };
+
+    // Componente Principal
+    function PromoBankDashboard() {
+      const [activeTab, setActiveTab] = useState('overview');
+
+      const renderOverview = () => (
+        <>
+          <div style={styles.grid2}>
+            <div style={styles.card}>
+              <div style={styles.cardTitle}>
+                <div style={styles.cardTitleIcon}></div>
+                Atividades Criadas vs Resolvidas
+              </div>
+              <ResponsiveContainer width="100%" height={300}>
+                <AreaChart data={monthlyData}>
+                  <defs>
+                    <linearGradient id="colorCriadas" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor={PRIMARY_COLOR} stopOpacity={0.4}/>
+                      <stop offset="95%" stopColor={PRIMARY_COLOR} stopOpacity={0}/>
+                    </linearGradient>
+                    <linearGradient id="colorResolvidas" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#FFFFFF" stopOpacity={0.3}/>
+                      <stop offset="95%" stopColor="#FFFFFF" stopOpacity={0}/>
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
+                  <XAxis dataKey="month" stroke="rgba(255,255,255,0.4)" fontSize={12} />
+                  <YAxis stroke="rgba(255,255,255,0.4)" fontSize={12} />
+                  <Tooltip content={<CustomTooltip />} />
+                  <Area type="monotone" dataKey="criadas" stroke={PRIMARY_COLOR} strokeWidth={2} fill="url(#colorCriadas)" name="Criadas" />
+                  <Area type="monotone" dataKey="resolvidas" stroke="#FFFFFF" strokeWidth={2} fill="url(#colorResolvidas)" name="Resolvidas" />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+
+            <div style={styles.card}>
+              <div style={styles.cardTitle}>
+                <div style={styles.cardTitleIcon}></div>
+                Distribuição por Tipo
+              </div>
+              <ResponsiveContainer width="100%" height={280}>
+                <PieChart>
+                  <Pie
+                    data={typeDistribution}
+                    cx="50%"
+                    cy="50%"
+                    outerRadius={90}
+                    innerRadius={50}
+                    dataKey="value"
+                    labelLine={false}
+                    label={renderCustomizedLabel}
+                  >
+                    {typeDistribution.map((entry, index) => (
+                      <Cell key={index} fill={entry.color} stroke="rgba(0,0,0,0.3)" strokeWidth={2} />
+                    ))}
+                  </Pie>
+                  <Tooltip content={<CustomTooltip />} />
+                </PieChart>
+              </ResponsiveContainer>
+              <div style={{ display: 'flex', justifyContent: 'center', gap: '20px', marginTop: '16px' }}>
+                {typeDistribution.map((item, index) => (
+                  <div key={index} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <div style={{ width: '12px', height: '12px', background: item.color, borderRadius: '3px' }}></div>
+                    <span style={{ color: 'rgba(255,255,255,0.7)', fontSize: '13px' }}>{item.name}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <div style={styles.grid3}>
+            <div style={styles.card}>
+              <div style={styles.cardTitle}>
+                <div style={styles.cardTitleIcon}></div>
+                Performance Trimestral
+              </div>
+              <ResponsiveContainer width="100%" height={220}>
+                <BarChart data={quarterlyData} barGap={8}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
+                  <XAxis dataKey="quarter" stroke="rgba(255,255,255,0.4)" fontSize={12} />
+                  <YAxis stroke="rgba(255,255,255,0.4)" fontSize={12} />
+                  <Tooltip content={<CustomTooltip />} />
+                  <Bar dataKey="criadas" fill={PRIMARY_COLOR} radius={[4, 4, 0, 0]} name="Criadas" />
+                  <Bar dataKey="resolvidas" fill="#FFFFFF" radius={[4, 4, 0, 0]} name="Resolvidas" />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+
+            <div style={{ ...styles.card, ...styles.highlightCard }}>
+              <div style={styles.cardTitle}>
+                <div style={styles.cardTitleIcon}></div>
+                Taxa de Resolução
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '180px' }}>
+                <div style={{ textAlign: 'center' }}>
+                  <div style={styles.bigNumber}>69.4%</div>
+                  <div style={{ color: 'rgba(255,255,255,0.6)', marginTop: '8px' }}>576 de 830 atividades</div>
+                </div>
+              </div>
+            </div>
+
+            <div style={styles.card}>
+              <div style={styles.cardTitle}>
+                <div style={styles.cardTitleIcon}></div>
+                Evolução de Bugs
+              </div>
+              <ResponsiveContainer width="100%" height={220}>
+                <LineChart data={monthlyData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
+                  <XAxis dataKey="month" stroke="rgba(255,255,255,0.4)" fontSize={12} />
+                  <YAxis stroke="rgba(255,255,255,0.4)" fontSize={12} />
+                  <Tooltip content={<CustomTooltip />} />
+                  <Line type="monotone" dataKey="bugs" stroke={PRIMARY_COLOR} strokeWidth={3} dot={{ fill: PRIMARY_COLOR, strokeWidth: 2, r: 4 }} name="Bugs" />
+                </LineChart>
+              </ResponsiveContainer>
+              <div style={{ textAlign: 'center', marginTop: '12px' }}>
+                <span style={styles.badge}>↓ 64% redução no ano</span>
+              </div>
+            </div>
+          </div>
+        </>
+      );
+
+      const renderReleases = () => (
+        <>
+          <div style={styles.grid2}>
+            <div style={styles.card}>
+              <div style={styles.cardTitle}>
+                <div style={styles.cardTitleIcon}></div>
+                Top 10 Releases por Volume
+              </div>
+              <ResponsiveContainer width="100%" height={400}>
+                <BarChart data={topReleases} layout="vertical" margin={{ left: 20, right: 60 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
+                  <XAxis type="number" stroke="rgba(255,255,255,0.4)" fontSize={12} />
+                  <YAxis 
+                    dataKey="name" 
+                    type="category" 
+                    stroke="rgba(255,255,255,0.4)" 
+                    fontSize={12} 
+                    width={70}
+                    tickFormatter={(value) => `v${value}`}
+                  />
+                  <Tooltip content={<CustomTooltip />} />
+                  <Bar dataKey="value" fill={PRIMARY_COLOR} radius={[0, 4, 4, 0]} name="Atividades">
+                    {topReleases.map((entry, index) => (
+                      <Cell key={index} fill={index < 3 ? PRIMARY_COLOR : PRIMARY_DARK} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+              <div style={{ ...styles.card, ...styles.highlightCard }}>
+                <div style={{ textAlign: 'center', padding: '20px 0' }}>
+                  <div style={styles.bigNumber}>40</div>
+                  <div style={{ color: 'rgba(255,255,255,0.6)', marginTop: '8px' }}>Releases Publicadas</div>
+                </div>
+              </div>
+              
+              <div style={styles.card}>
+                <div style={styles.statRow}>
+                  <span style={styles.statLabel}>Média por mês</span>
+                  <span style={styles.statValue}>3.6</span>
+                </div>
+                <div style={styles.statRow}>
+                  <span style={styles.statLabel}>Maior release</span>
+                  <span style={styles.statValue}>25 ativ.</span>
+                </div>
+                <div style={{ ...styles.statRow, borderBottom: 'none' }}>
+                  <span style={styles.statLabel}>Média por release</span>
+                  <span style={styles.statValue}>14.4 ativ.</span>
+                </div>
+              </div>
+
+              <div style={styles.card}>
+                <div style={styles.cardTitle}>
+                  <div style={styles.cardTitleIcon}></div>
+                  Top 5 Releases
+                </div>
+                {topReleases.slice(0, 5).map((release, index) => (
+                  <div key={index} style={styles.releaseItem}>
+                    <div>
+                      <span style={{ color: PRIMARY_COLOR, fontWeight: '600' }}>v{release.name}</span>
+                      <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: '12px', marginLeft: '12px' }}>{release.month}</span>
+                    </div>
+                    <span style={styles.statValue}>{release.value}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </>
+      );
+
+      const renderEficiencia = () => (
+        <>
+          <div style={styles.grid2}>
+            <div style={styles.card}>
+              <div style={styles.cardTitle}>
+                <div style={styles.cardTitleIcon}></div>
+                Eficiência Mensal (%)
+              </div>
+              <ResponsiveContainer width="100%" height={300}>
+                <AreaChart data={monthlyData}>
+                  <defs>
+                    <linearGradient id="colorEficiencia" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor={PRIMARY_COLOR} stopOpacity={0.5}/>
+                      <stop offset="95%" stopColor={PRIMARY_COLOR} stopOpacity={0}/>
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
+                  <XAxis dataKey="month" stroke="rgba(255,255,255,0.4)" fontSize={12} />
+                  <YAxis stroke="rgba(255,255,255,0.4)" fontSize={12} domain={[0, 140]} />
+                  <Tooltip content={<CustomTooltip />} />
+                  <Area type="monotone" dataKey="eficiencia" stroke={PRIMARY_COLOR} strokeWidth={3} fill="url(#colorEficiencia)" name="Eficiência %" />
+                </AreaChart>
+              </ResponsiveContainer>
+              <div style={{ display: 'flex', gap: '12px', marginTop: '16px', justifyContent: 'center' }}>
+                <span style={styles.badge}>Jul: 106.2%</span>
+                <span style={styles.badge}>Set: 126.8%</span>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+              <div style={{ ...styles.card, ...styles.highlightCard }}>
+                <div style={{ textAlign: 'center', padding: '20px 0' }}>
+                  <div style={{ fontSize: '14px', color: 'rgba(255,255,255,0.5)', marginBottom: '8px' }}>Melhor Mês</div>
+                  <div style={styles.bigNumber}>126.8%</div>
+                  <div style={{ color: PRIMARY_COLOR, marginTop: '8px', fontWeight: '600' }}>Setembro</div>
+                </div>
+              </div>
+
+              <div style={styles.card}>
+                <div style={styles.statRow}>
+                  <span style={styles.statLabel}>Média anual</span>
+                  <span style={styles.statValue}>68.5%</span>
+                </div>
+                <div style={styles.statRow}>
+                  <span style={styles.statLabel}>Tendência 2º sem</span>
+                  <span style={{ ...styles.statValue, color: PRIMARY_COLOR }}>+42%</span>
+                </div>
+                <div style={{ ...styles.statRow, borderBottom: 'none' }}>
+                  <span style={styles.statLabel}>Meses &gt;100%</span>
+                  <span style={styles.statValue}>2</span>
+                </div>
+              </div>
+
+              <div style={styles.card}>
+                <div style={styles.cardTitle}>
+                  <div style={styles.cardTitleIcon}></div>
+                  Resolução por Tipo
+                </div>
+                {typeData.map((type, index) => (
+                  <div key={index} style={{ marginBottom: index === typeData.length - 1 ? 0 : '16px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
+                      <span style={{ color: 'rgba(255,255,255,0.7)', fontSize: '13px' }}>{type.name}</span>
+                      <span style={{ color: '#FFFFFF', fontSize: '13px', fontWeight: '600' }}>{type.taxa}%</span>
+                    </div>
+                    <div style={styles.progressBar}>
+                      <div style={{ ...styles.progressFill, width: `${type.taxa}%`, background: type.color }}></div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </>
+      );
+
+      const renderBugs = () => (
+        <>
+          <div style={styles.grid4}>
+            <div style={{ ...styles.bugCard, textAlign: 'center' }}>
+              <div style={{ fontSize: '28px', marginBottom: '12px' }}>🐛</div>
+              <div style={{ fontSize: '42px', fontWeight: '700', color: PRIMARY_COLOR, marginBottom: '4px' }}>
+                <AnimatedCounter end={bugsStats.total} />
+              </div>
+              <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: '14px' }}>Total de Bugs</div>
+            </div>
+
+            <div style={{ ...styles.bugCard, textAlign: 'center' }}>
+              <div style={{ fontSize: '28px', marginBottom: '12px' }}>✅</div>
+              <div style={{ fontSize: '42px', fontWeight: '700', color: '#22C55E', marginBottom: '4px' }}>
+                <AnimatedCounter end={bugsStats.resolvidos} />
+              </div>
+              <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: '14px' }}>Bugs Resolvidos</div>
+              <div style={{ ...styles.badge, ...styles.badgeSuccess, marginTop: '8px' }}>
+                {bugsStats.resolvidos}/{bugsStats.total}
+              </div>
+            </div>
+
+            <div style={{ ...styles.bugCard, textAlign: 'center' }}>
+              <div style={{ fontSize: '28px', marginBottom: '12px' }}>📊</div>
+              <div style={{ fontSize: '42px', fontWeight: '700', color: PRIMARY_COLOR, marginBottom: '4px' }}>
+                {bugsStats.taxaResolucao}%
+              </div>
+              <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: '14px' }}>Taxa de Resolução</div>
+            </div>
+
+            <div style={{ ...styles.bugCard, textAlign: 'center' }}>
+              <div style={{ fontSize: '28px', marginBottom: '12px' }}>⏳</div>
+              <div style={{ fontSize: '42px', fontWeight: '700', color: '#F59E0B', marginBottom: '4px' }}>
+                <AnimatedCounter end={bugsStats.pendentes} />
+              </div>
+              <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: '14px' }}>Bugs Pendentes</div>
+            </div>
+          </div>
+
+          <div style={styles.grid2}>
+            <div style={styles.card}>
+              <div style={styles.cardTitle}>
+                <div style={styles.cardTitleIcon}></div>
+                Bugs Criados vs Resolvidos por Mês
+              </div>
+              <ResponsiveContainer width="100%" height={320}>
+                <ComposedChart data={bugsMonthlyData}>
+                  <defs>
+                    <linearGradient id="colorBugsCriados" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor={PRIMARY_COLOR}/>
+                      <stop offset="100%" stopColor={PRIMARY_DARK}/>
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
+                  <XAxis dataKey="month" stroke="rgba(255,255,255,0.4)" fontSize={12} />
+                  <YAxis stroke="rgba(255,255,255,0.4)" fontSize={12} />
+                  <Tooltip content={<CustomTooltip />} />
+                  <Bar dataKey="criados" fill="url(#colorBugsCriados)" radius={[4, 4, 0, 0]} name="Criados" />
+                  <Line type="monotone" dataKey="resolvidos" stroke="#22C55E" strokeWidth={3} dot={{ fill: '#22C55E', r: 5 }} name="Resolvidos" />
+                </ComposedChart>
+              </ResponsiveContainer>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+              <div style={styles.card}>
+                <div style={styles.cardTitle}>
+                  <div style={styles.cardTitleIcon}></div>
+                  Status dos Bugs
+                </div>
+                <ResponsiveContainer width="100%" height={180}>
+                  <PieChart>
+                    <Pie
+                      data={bugsPieData}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={50}
+                      outerRadius={70}
+                      dataKey="value"
+                      stroke="none"
+                    >
+                      {bugsPieData.map((entry, index) => (
+                        <Cell key={index} fill={entry.color} />
+                      ))}
+                    </Pie>
+                    <Tooltip content={<CustomTooltip />} />
+                  </PieChart>
+                </ResponsiveContainer>
+                <div style={{ display: 'flex', justifyContent: 'center', gap: '20px' }}>
+                  {bugsPieData.map((item, index) => (
+                    <div key={index} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <div style={{ width: '12px', height: '12px', background: item.color, borderRadius: '3px' }}></div>
+                      <span style={{ color: 'rgba(255,255,255,0.7)', fontSize: '13px' }}>{item.name}: {item.value}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div style={styles.card}>
+                <div style={styles.statRow}>
+                  <span style={styles.statLabel}>Média criados/mês</span>
+                  <span style={styles.statValue}>{bugsStats.mediaMensal}</span>
+                </div>
+                <div style={styles.statRow}>
+                  <span style={styles.statLabel}>Média resolvidos/mês</span>
+                  <span style={styles.statValue}>{bugsStats.mediaResolvidos}</span>
+                </div>
+                <div style={{ ...styles.statRow, borderBottom: 'none' }}>
+                  <span style={styles.statLabel}>Melhor mês</span>
+                  <span style={{ ...styles.statValue, color: '#22C55E' }}>{bugsStats.melhorMes} ({bugsStats.melhorEficiencia}%)</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div style={styles.grid3}>
+            <div style={{ ...styles.card, ...styles.highlightCard, textAlign: 'center' }}>
+              <div style={{ fontSize: '48px', marginBottom: '16px' }}>🏆</div>
+              <div style={{ color: PRIMARY_COLOR, fontSize: '18px', fontWeight: '700', marginBottom: '8px' }}>
+                Setembro Recorde
+              </div>
+              <div style={{ fontSize: '36px', fontWeight: '700', color: '#22C55E', marginBottom: '8px' }}>
+                170.6%
+              </div>
+              <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: '14px' }}>
+                de eficiência na resolução
+              </div>
+            </div>
+
+            <div style={{ ...styles.card, ...styles.highlightCard, textAlign: 'center' }}>
+              <div style={{ fontSize: '48px', marginBottom: '16px' }}>📉</div>
+              <div style={{ color: PRIMARY_COLOR, fontSize: '18px', fontWeight: '700', marginBottom: '8px' }}>
+                Tendência de Queda
+              </div>
+              <div style={{ fontSize: '36px', fontWeight: '700', color: '#FFFFFF', marginBottom: '8px' }}>
+                45 → 16
+              </div>
+              <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: '14px' }}>
+                bugs criados (Jan vs Nov)
+              </div>
+            </div>
+
+            <div style={{ ...styles.card, ...styles.highlightCard, textAlign: 'center' }}>
+              <div style={{ fontSize: '48px', marginBottom: '16px' }}>✨</div>
+              <div style={{ color: PRIMARY_COLOR, fontSize: '18px', fontWeight: '700', marginBottom: '8px' }}>
+                Meses Positivos
+              </div>
+              <div style={{ fontSize: '36px', fontWeight: '700', color: '#22C55E', marginBottom: '8px' }}>
+                4 meses
+              </div>
+              <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: '14px' }}>
+                com eficiência &gt;100%
+              </div>
+            </div>
+          </div>
+        </>
+      );
+
+      const renderInovacao = () => (
+        <>
+          <div style={styles.grid4}>
+            <div style={{ ...styles.inovacaoCard, textAlign: 'center' }}>
+              <div style={{ fontSize: '28px', marginBottom: '12px' }}>💡</div>
+              <div style={{ fontSize: '42px', fontWeight: '700', color: INOVACAO_COLOR, marginBottom: '4px' }}>
+                <AnimatedCounter end={inovacaoStats.totalInovacao} />
+              </div>
+              <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: '14px' }}>Histórias Entregues</div>
+              <div style={{ ...styles.badge, ...styles.badgePurple, marginTop: '8px' }}>Inovação</div>
+            </div>
+
+            <div style={{ ...styles.bugCard, textAlign: 'center' }}>
+              <div style={{ fontSize: '28px', marginBottom: '12px' }}>🔧</div>
+              <div style={{ fontSize: '42px', fontWeight: '700', color: CORRECAO_COLOR, marginBottom: '4px' }}>
+                <AnimatedCounter end={inovacaoStats.totalCorrecao} />
+              </div>
+              <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: '14px' }}>Bugs Corrigidos</div>
+              <div style={{ ...styles.badge, ...styles.badgeOrange, marginTop: '8px' }}>Correções</div>
+            </div>
+
+            <div style={{ ...styles.card, textAlign: 'center' }}>
+              <div style={{ fontSize: '28px', marginBottom: '12px' }}>📊</div>
+              <div style={{ fontSize: '42px', fontWeight: '700', color: INOVACAO_COLOR, marginBottom: '4px' }}>
+                {inovacaoStats.pctInovacao}%
+              </div>
+              <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: '14px' }}>Taxa de Inovação</div>
+            </div>
+
+            <div style={{ ...styles.card, ...styles.highlightCard, textAlign: 'center' }}>
+              <div style={{ fontSize: '28px', marginBottom: '12px' }}>🚀</div>
+              <div style={{ fontSize: '42px', fontWeight: '700', color: '#22C55E', marginBottom: '4px' }}>
+                {inovacaoStats.melhorPctInovacao}%
+              </div>
+              <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: '14px' }}>Melhor Mês ({inovacaoStats.melhorMesInovacao})</div>
+            </div>
+          </div>
+
+          <div style={styles.card}>
+            <div style={styles.cardTitle}>
+              <div style={styles.cardTitleIcon}></div>
+              Evolução Mensal: Inovação vs Correções
+            </div>
+            <ResponsiveContainer width="100%" height={350}>
+              <ComposedChart data={inovacaoVsCorrecao}>
+                <defs>
+                  <linearGradient id="colorInovacao" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor={INOVACAO_COLOR}/>
+                    <stop offset="100%" stopColor="#5B21B6"/>
+                  </linearGradient>
+                  <linearGradient id="colorCorrecao" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor={CORRECAO_COLOR}/>
+                    <stop offset="100%" stopColor="#B45309"/>
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
+                <XAxis dataKey="month" stroke="rgba(255,255,255,0.4)" fontSize={12} />
+                <YAxis stroke="rgba(255,255,255,0.4)" fontSize={12} />
+                <Tooltip content={<CustomTooltip />} />
+                <Bar dataKey="inovacao" fill="url(#colorInovacao)" radius={[4, 4, 0, 0]} name="Inovação (Histórias)" />
+                <Bar dataKey="correcao" fill="url(#colorCorrecao)" radius={[4, 4, 0, 0]} name="Correções (Bugs)" />
+              </ComposedChart>
+            </ResponsiveContainer>
+            <div style={{ display: 'flex', justifyContent: 'center', gap: '32px', marginTop: '20px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <div style={{ width: '16px', height: '12px', background: INOVACAO_COLOR, borderRadius: '2px' }}></div>
+                <span style={{ color: 'rgba(255,255,255,0.7)', fontSize: '14px' }}>Inovação (User Stories)</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <div style={{ width: '16px', height: '12px', background: CORRECAO_COLOR, borderRadius: '2px' }}></div>
+                <span style={{ color: 'rgba(255,255,255,0.7)', fontSize: '14px' }}>Correções (Bugs)</span>
+              </div>
+            </div>
+          </div>
+
+          <div style={styles.grid2Equal}>
+            <div style={styles.card}>
+              <div style={styles.cardTitle}>
+                <div style={styles.cardTitleIcon}></div>
+                Evolução Acumulada
+              </div>
+              <ResponsiveContainer width="100%" height={280}>
+                <AreaChart data={inovacaoVsCorrecaoAcumulado}>
+                  <defs>
+                    <linearGradient id="colorInovacaoArea" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor={INOVACAO_COLOR} stopOpacity={0.4}/>
+                      <stop offset="95%" stopColor={INOVACAO_COLOR} stopOpacity={0}/>
+                    </linearGradient>
+                    <linearGradient id="colorCorrecaoArea" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor={CORRECAO_COLOR} stopOpacity={0.4}/>
+                      <stop offset="95%" stopColor={CORRECAO_COLOR} stopOpacity={0}/>
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
+                  <XAxis dataKey="month" stroke="rgba(255,255,255,0.4)" fontSize={12} />
+                  <YAxis stroke="rgba(255,255,255,0.4)" fontSize={12} />
+                  <Tooltip content={<CustomTooltip />} />
+                  <Area type="monotone" dataKey="inovacao" stroke={INOVACAO_COLOR} strokeWidth={3} fill="url(#colorInovacaoArea)" name="Inovação Acumulada" />
+                  <Area type="monotone" dataKey="correcao" stroke={CORRECAO_COLOR} strokeWidth={3} fill="url(#colorCorrecaoArea)" name="Correções Acumuladas" />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+
+            <div style={styles.card}>
+              <div style={styles.cardTitle}>
+                <div style={styles.cardTitleIcon}></div>
+                % de Inovação por Mês
+              </div>
+              <ResponsiveContainer width="100%" height={280}>
+                <AreaChart data={inovacaoVsCorrecao}>
+                  <defs>
+                    <linearGradient id="colorPctInovacao" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor={INOVACAO_COLOR} stopOpacity={0.5}/>
+                      <stop offset="95%" stopColor={INOVACAO_COLOR} stopOpacity={0}/>
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
+                  <XAxis dataKey="month" stroke="rgba(255,255,255,0.4)" fontSize={12} />
+                  <YAxis stroke="rgba(255,255,255,0.4)" fontSize={12} domain={[0, 100]} />
+                  <Tooltip content={<CustomTooltip />} />
+                  <Area type="monotone" dataKey="pctInovacao" stroke={INOVACAO_COLOR} strokeWidth={3} fill="url(#colorPctInovacao)" name="% Inovação" />
+                </AreaChart>
+              </ResponsiveContainer>
+              <div style={{ display: 'flex', gap: '12px', marginTop: '16px', justifyContent: 'center' }}>
+                <span style={{ ...styles.badge, ...styles.badgePurple }}>Mai: 53.6%</span>
+                <span style={{ ...styles.badge, ...styles.badgePurple }}>Jul: 50.0%</span>
+                <span style={{ ...styles.badge, ...styles.badgePurple }}>Nov: 67.7%</span>
+              </div>
+            </div>
+          </div>
+
+          <div style={styles.grid3}>
+            <div style={{ ...styles.card, ...styles.highlightCard, textAlign: 'center' }}>
+              <div style={{ fontSize: '36px', marginBottom: '12px' }}>📈</div>
+              <div style={{ color: PRIMARY_COLOR, fontSize: '16px', fontWeight: '700', marginBottom: '8px' }}>
+                Tendência de Inovação
+              </div>
+              <div style={{ fontSize: '28px', fontWeight: '700', color: '#22C55E', marginBottom: '4px' }}>
+                0% → 67.7%
+              </div>
+              <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: '13px' }}>
+                Janeiro vs Novembro
+              </div>
+            </div>
+
+            <div style={{ ...styles.inovacaoCard, textAlign: 'center' }}>
+              <div style={{ fontSize: '36px', marginBottom: '12px' }}>🎯</div>
+              <div style={{ color: INOVACAO_COLOR, fontSize: '16px', fontWeight: '700', marginBottom: '8px' }}>
+                Novembro Destaque
+              </div>
+              <div style={{ fontSize: '28px', fontWeight: '700', color: '#FFFFFF', marginBottom: '4px' }}>
+                21 Histórias
+              </div>
+              <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: '13px' }}>
+                vs apenas 10 bugs
+              </div>
+            </div>
+
+            <div style={{ ...styles.card, textAlign: 'center' }}>
+              <div style={{ fontSize: '36px', marginBottom: '12px' }}>⚖️</div>
+              <div style={{ color: PRIMARY_COLOR, fontSize: '16px', fontWeight: '700', marginBottom: '8px' }}>
+                Ponto de Equilíbrio
+              </div>
+              <div style={{ fontSize: '28px', fontWeight: '700', color: '#FFFFFF', marginBottom: '4px' }}>
+                Julho
+              </div>
+              <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: '13px' }}>
+                50% Inovação / 50% Correções
+              </div>
+            </div>
+          </div>
+        </>
+      );
+
+      const renderSuporte = () => (
+        <>
+          <div style={{ ...styles.kpiGrid, gridTemplateColumns: 'repeat(4, 1fr)', marginBottom: '32px' }}>
+            {[
+              { value: 419, label: 'Demandas do Suporte', icon: '🎧' },
+              { value: '50.5%', label: 'Do Total', icon: '📊' },
+              { value: 38, label: 'Média Mensal', icon: '📈' },
+              { value: 55, label: 'Pico (Outubro)', icon: '🎯' }
+            ].map((kpi, index) => (
+              <div key={index} style={{ ...styles.card, ...styles.highlightCard, textAlign: 'center', padding: '32px' }}>
+                <div style={{ fontSize: '32px', marginBottom: '12px' }}>{kpi.icon}</div>
+                <div style={{ fontSize: '36px', fontWeight: '700', color: PRIMARY_COLOR, marginBottom: '8px' }}>
+                  {typeof kpi.value === 'number' ? <AnimatedCounter end={kpi.value} /> : kpi.value}
+                </div>
+                <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: '14px' }}>{kpi.label}</div>
+              </div>
+            ))}
+          </div>
+
+          <div style={styles.grid2}>
+            <div style={styles.card}>
+              <div style={styles.cardTitle}>
+                <div style={styles.cardTitleIcon}></div>
+                Demandas dos Canais de Suporte por Mês
+              </div>
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={monthlyData}>
+                  <defs>
+                    <linearGradient id="colorSpromo" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor={PRIMARY_COLOR}/>
+                      <stop offset="100%" stopColor={PRIMARY_DARK}/>
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
+                  <XAxis dataKey="month" stroke="rgba(255,255,255,0.4)" fontSize={12} />
+                  <YAxis stroke="rgba(255,255,255,0.4)" fontSize={12} />
+                  <Tooltip content={<CustomTooltip />} />
+                  <Bar dataKey="spromo" fill="url(#colorSpromo)" radius={[4, 4, 0, 0]} name="Demandas Suporte" />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+              <div style={styles.card}>
+                <div style={styles.cardTitle}>
+                  <div style={styles.cardTitleIcon}></div>
+                  Origem das Atividades
+                </div>
+                <ResponsiveContainer width="100%" height={200}>
+                  <PieChart>
+                    <Pie
+                      data={spromoData}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={60}
+                      outerRadius={80}
+                      dataKey="value"
+                      stroke="none"
+                    >
+                      {spromoData.map((entry, index) => (
+                        <Cell key={index} fill={entry.color} />
+                      ))}
+                    </Pie>
+                    <Tooltip content={<CustomTooltip />} />
+                  </PieChart>
+                </ResponsiveContainer>
+                <div style={{ display: 'flex', justifyContent: 'center', gap: '24px', marginTop: '12px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <div style={{ width: '12px', height: '12px', background: PRIMARY_COLOR, borderRadius: '3px' }}></div>
+                    <span style={{ color: 'rgba(255,255,255,0.7)', fontSize: '13px' }}>Suporte/Atendimento</span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <div style={{ width: '12px', height: '12px', background: '#333', borderRadius: '3px' }}></div>
+                    <span style={{ color: 'rgba(255,255,255,0.7)', fontSize: '13px' }}>Interno</span>
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ ...styles.card, ...styles.highlightCard, textAlign: 'center' }}>
+                <div style={{ fontSize: '24px', marginBottom: '16px' }}>🎧</div>
+                <div style={{ color: PRIMARY_COLOR, fontSize: '18px', fontWeight: '600', marginBottom: '8px' }}>
+                  Foco no Cliente
+                </div>
+                <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: '14px', lineHeight: 1.6 }}>
+                  Mais de 50% das atividades originadas dos canais de suporte e atendimento ao cliente
+                </div>
+              </div>
+            </div>
+          </div>
+        </>
+      );
+
+      const renderMinhaGestao = () => (
+        <>
+          <div style={styles.gestaoCard}>
+            <div style={styles.gestaoHeader}>
+              <div style={styles.gestaoTitle}>🚀 Impacto da Nova Gestão</div>
+              <div style={styles.gestaoSubtitle}>
+                Comparativo de performance desde 11 de Setembro de 2025
+              </div>
+            </div>
+
+            <div style={styles.comparisonGrid}>
+              <div style={styles.metricBox}>
+                <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: '12px', marginBottom: '16px', textTransform: 'uppercase', letterSpacing: '1px' }}>
+                  Antes • Jan - 10/Set
+                </div>
+                <div style={{ ...styles.metricValue, color: '#666666' }}>
+                  {gestaoComparativo.antes.taxaResolucao}%
+                </div>
+                <div style={styles.metricLabel}>Taxa de Resolução</div>
+                <div style={{ marginTop: '16px', padding: '12px', background: 'rgba(255,255,255,0.05)', borderRadius: '8px' }}>
+                  <div style={{ fontSize: '13px', color: 'rgba(255,255,255,0.6)' }}>
+                    {gestaoComparativo.antes.resolvidas} resolvidas de {gestaoComparativo.antes.criadas} criadas
+                  </div>
+                </div>
+              </div>
+
+              <div style={styles.vsCircle}>VS</div>
+
+              <div style={{ ...styles.metricBox, border: `2px solid rgba(230, 27, 32, 0.5)` }}>
+                <div style={{ color: PRIMARY_COLOR, fontSize: '12px', marginBottom: '16px', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: '600' }}>
+                  Depois • 11/Set - Nov
+                </div>
+                <div style={{ ...styles.metricValue, color: PRIMARY_COLOR }}>
+                  {gestaoComparativo.depois.taxaResolucao}%
+                </div>
+                <div style={styles.metricLabel}>Taxa de Resolução</div>
+                <div style={styles.improvementBadge}>
+                  <span>↑</span>
+                  <span>+{gestaoComparativo.melhorias.taxaResolucao}% de melhoria</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div style={{ ...styles.kpiGrid, gridTemplateColumns: 'repeat(4, 1fr)', marginBottom: '32px' }}>
+            {[
+              { 
+                before: gestaoComparativo.antes.taxaResolucao + '%',
+                after: gestaoComparativo.depois.taxaResolucao + '%',
+                improvement: '+' + gestaoComparativo.melhorias.taxaResolucao + '%',
+                label: 'Taxa de Resolução',
+                icon: '📈'
+              },
+              { 
+                before: gestaoComparativo.antes.produtividadeDiaria.toFixed(2),
+                after: gestaoComparativo.depois.produtividadeDiaria.toFixed(2),
+                improvement: '+' + gestaoComparativo.melhorias.produtividade + '%',
+                label: 'Produtividade/Dia',
+                icon: '⚡'
+              },
+              { 
+                before: gestaoComparativo.antes.bugs,
+                after: gestaoComparativo.depois.bugs,
+                improvement: '-' + gestaoComparativo.melhorias.reducaoBugs + '%',
+                label: 'Bugs Criados',
+                icon: '🐛'
+              },
+              { 
+                before: '253 dias',
+                after: '80 dias',
+                improvement: '3x mais eficiente',
+                label: 'Período Analisado',
+                icon: '📅'
+              }
+            ].map((metric, index) => (
+              <div key={index} style={styles.card}>
+                <div style={{ textAlign: 'center' }}>
+                  <div style={{ fontSize: '28px', marginBottom: '12px' }}>{metric.icon}</div>
+                  <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
+                    <span style={{ color: '#666666', fontSize: '18px', textDecoration: 'line-through' }}>{metric.before}</span>
+                    <span style={{ color: PRIMARY_COLOR, fontSize: '14px' }}>→</span>
+                    <span style={{ color: PRIMARY_COLOR, fontSize: '24px', fontWeight: '700' }}>{metric.after}</span>
+                  </div>
+                  <div style={{ ...styles.badge, ...styles.badgeSuccess }}>{metric.improvement}</div>
+                  <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: '13px', marginTop: '12px' }}>{metric.label}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div style={styles.grid2Equal}>
+            <div style={styles.card}>
+              <div style={styles.cardTitle}>
+                <div style={styles.cardTitleIcon}></div>
+                Eficiência Mensal - Linha do Tempo
+              </div>
+              <ResponsiveContainer width="100%" height={280}>
+                <BarChart data={monthlyData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
+                  <XAxis dataKey="month" stroke="rgba(255,255,255,0.4)" fontSize={12} />
+                  <YAxis stroke="rgba(255,255,255,0.4)" fontSize={12} domain={[0, 140]} />
+                  <Tooltip content={<CustomTooltip />} />
+                  <Bar dataKey="eficiencia" name="Eficiência %" radius={[4, 4, 0, 0]}>
+                    {monthlyData.map((entry, index) => (
+                      <Cell 
+                        key={index} 
+                        fill={entry.month === 'Set' || entry.month === 'Out' || entry.month === 'Nov' ? PRIMARY_COLOR : '#444444'} 
+                      />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+              <div style={{ textAlign: 'center', marginTop: '12px' }}>
+                <span style={{ ...styles.badge, marginRight: '8px', background: 'rgba(68,68,68,0.3)', color: '#888' }}>● Antes</span>
+                <span style={styles.badge}>● Após entrada (Set-Nov)</span>
+              </div>
+            </div>
+
+            <div style={styles.card}>
+              <div style={styles.cardTitle}>
+                <div style={styles.cardTitleIcon}></div>
+                Comparativo de Performance
+              </div>
+              <ResponsiveContainer width="100%" height={280}>
+                <BarChart data={eficienciaComparativo} layout="vertical">
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
+                  <XAxis type="number" stroke="rgba(255,255,255,0.4)" fontSize={12} domain={[0, 100]} />
+                  <YAxis dataKey="name" type="category" stroke="rgba(255,255,255,0.4)" fontSize={14} width={60} />
+                  <Tooltip content={<CustomTooltip />} />
+                  <Bar dataKey="value" name="Taxa de Resolução %" radius={[0, 8, 8, 0]}>
+                    {eficienciaComparativo.map((entry, index) => (
+                      <Cell key={index} fill={entry.fill} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+              <div style={{ textAlign: 'center', marginTop: '20px', padding: '16px', background: `rgba(230, 27, 32, 0.1)`, borderRadius: '12px' }}>
+                <div style={{ fontSize: '24px', fontWeight: '700', color: '#22C55E' }}>
+                  +27.8 pontos percentuais
+                </div>
+                <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: '13px', marginTop: '4px' }}>
+                  de melhoria na taxa de resolução
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div style={styles.grid3}>
+            <div style={{ ...styles.card, ...styles.highlightCard, textAlign: 'center' }}>
+              <div style={{ fontSize: '48px', marginBottom: '16px' }}>🎯</div>
+              <div style={{ color: PRIMARY_COLOR, fontSize: '20px', fontWeight: '700', marginBottom: '8px' }}>
+                Setembro Recorde
+              </div>
+              <div style={{ fontSize: '42px', fontWeight: '700', color: '#FFFFFF', marginBottom: '8px' }}>
+                126.8%
+              </div>
+              <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: '14px' }}>
+                de eficiência no mês de entrada
+              </div>
+            </div>
+
+            <div style={{ ...styles.card, ...styles.highlightCard, textAlign: 'center' }}>
+              <div style={{ fontSize: '48px', marginBottom: '16px' }}>📉</div>
+              <div style={{ color: PRIMARY_COLOR, fontSize: '20px', fontWeight: '700', marginBottom: '8px' }}>
+                Redução de Bugs
+              </div>
+              <div style={{ fontSize: '42px', fontWeight: '700', color: '#FFFFFF', marginBottom: '8px' }}>
+                -80%
+              </div>
+              <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: '14px' }}>
+                menos bugs criados por período
+              </div>
+            </div>
+
+            <div style={{ ...styles.card, ...styles.highlightCard, textAlign: 'center' }}>
+              <div style={{ fontSize: '48px', marginBottom: '16px' }}>⚡</div>
+              <div style={{ color: PRIMARY_COLOR, fontSize: '20px', fontWeight: '700', marginBottom: '8px' }}>
+                Velocidade
+              </div>
+              <div style={{ fontSize: '42px', fontWeight: '700', color: '#FFFFFF', marginBottom: '8px' }}>
+                +17.7%
+              </div>
+              <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: '14px' }}>
+                mais resoluções por dia
+              </div>
+            </div>
+          </div>
+        </>
+      );
+
+      return (
+        <div style={styles.container}>
+          <div style={styles.content}>
+            {/* Header */}
+            <header style={styles.header}>
+              <div style={styles.logo}>
+                <div style={styles.logoIcon}>P</div>
+                <div>
+                  <div style={styles.logoText}>PromoBank</div>
+                  <div style={styles.logoSubtext}>Dashboard de Desenvolvimento</div>
+                </div>
+              </div>
+              <div style={styles.headerRight}>
+                <div style={styles.headerDate}>Atualizado em Novembro 2025</div>
+                <div style={styles.headerTitle}>Relatório Anual de Entregas</div>
+              </div>
+            </header>
+
+            {/* KPI Cards */}
+            <div style={styles.kpiGrid}>
+              {[
+                { value: 830, label: 'Total Atividades', icon: '📊', bg: `rgba(230, 27, 32, 0.15)` },
+                { value: 576, label: 'Resolvidas', icon: '✅', bg: `rgba(230, 27, 32, 0.1)` },
+                { value: 40, label: 'Releases', icon: '🚀', bg: `rgba(230, 27, 32, 0.15)` },
+                { value: 419, label: 'Suporte', icon: '🎧', bg: `rgba(230, 27, 32, 0.1)` },
+                { value: 299, label: 'Bugs Tratados', icon: '🐛', bg: `rgba(230, 27, 32, 0.15)` },
+                { value: '69.4%', label: 'Taxa Resolução', icon: '📈', bg: `rgba(230, 27, 32, 0.1)` }
+              ].map((kpi, index) => (
+                <div key={index} style={{ ...styles.kpiCard, background: kpi.bg }}>
+                  <div style={{ ...styles.kpiIcon, background: `rgba(230, 27, 32, 0.2)` }}>
+                    {kpi.icon}
+                  </div>
+                  <div style={styles.kpiValue}>
+                    {typeof kpi.value === 'number' ? <AnimatedCounter end={kpi.value} /> : kpi.value}
+                  </div>
+                  <div style={styles.kpiLabel}>{kpi.label}</div>
+                </div>
+              ))}
+            </div>
+
+            {/* Tabs */}
+            <div style={styles.tabs}>
+              {[
+                { id: 'overview', label: 'Visão Geral' },
+                { id: 'releases', label: 'Releases' },
+                { id: 'eficiencia', label: 'Eficiência' },
+                { id: 'bugs', label: '🐛 Bugs' },
+                { id: 'inovacao', label: '💡 Inovação' },
+                { id: 'suporte', label: '🎧 Suporte' },
+                { id: 'gestao', label: '🚀 Minha Gestão' }
+              ].map(tab => (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  style={{
+                    ...styles.tab,
+                    ...(activeTab === tab.id ? styles.tabActive : {})
+                  }}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Content */}
+            {activeTab === 'overview' && renderOverview()}
+            {activeTab === 'releases' && renderReleases()}
+            {activeTab === 'eficiencia' && renderEficiencia()}
+            {activeTab === 'bugs' && renderBugs()}
+            {activeTab === 'inovacao' && renderInovacao()}
+            {activeTab === 'suporte' && renderSuporte()}
+            {activeTab === 'gestao' && renderMinhaGestao()}
+
+            {/* Footer */}
+            <footer style={{ 
+              textAlign: 'center', 
+              marginTop: '48px', 
+              paddingTop: '24px', 
+              borderTop: `1px solid rgba(230, 27, 32, 0.2)`,
+              color: 'rgba(255, 255, 255, 0.4)',
+              fontSize: '13px'
+            }}>
+              PromoBank © 2025 • Dashboard de Performance • Gerado automaticamente
+            </footer>
+          </div>
+        </div>
+      );
+    }
+
+    // Remover loading e renderizar
+    document.getElementById('loading').style.display = 'none';
+    ReactDOM.createRoot(document.getElementById('root')).render(<PromoBankDashboard />);
+  </script>
+</body>
+</html>
